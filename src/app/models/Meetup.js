@@ -1,4 +1,5 @@
 import Sequelize, { Model } from 'sequelize';
+import { isAfter } from 'date-fns';
 
 class Meetup extends Model {
   static init(sequelize) {
@@ -8,6 +9,12 @@ class Meetup extends Model {
         description: Sequelize.STRING,
         location: Sequelize.STRING,
         date: Sequelize.DATE,
+        isFinished: {
+          type: Sequelize.VIRTUAL,
+          get() {
+            return isAfter(new Date(), this.date);
+          },
+        },
       },
       { sequelize }
     );
@@ -16,9 +23,9 @@ class Meetup extends Model {
   }
 
   static associate(models) {
-    this.belongsTo(models.File, { foreignKey: 'file_id' });
+    this.belongsTo(models.File, { as: 'banner', foreignKey: 'file_id' });
 
-    this.belongsTo(models.User, { foreignKey: 'user_id' });
+    this.belongsTo(models.User, { as: 'organizer', foreignKey: 'user_id' });
   }
 }
 
