@@ -23,7 +23,7 @@ class MeetupController {
     if (isPastDate) {
       return res
         .status(400)
-        .json({ error: 'Cannot create meetups with past dates.' });
+        .json({ error: 'Not allowed to create past meetups.' });
     }
 
     // Check if file exists
@@ -43,6 +43,60 @@ class MeetupController {
       file_id,
       user_id: req.userId,
     });
+
+    return res.json(meetup);
+  }
+
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      title: Yup.string(),
+      description: Yup.string(),
+      location: Yup.string(),
+      date: Yup.date(),
+      file_id: Yup.number(),
+    });
+
+    await schema.validate(req.body).catch(({ errors }) => {
+      return res.status(400).json({ message: 'Validation fails.', errors });
+    });
+
+    const { date, file_id } = req.body;
+
+    // Check if is past date
+    if (date) {
+      const isPastDate = isBefore(parseISO(date), new Date());
+
+      if (isPastDate) {
+        return res
+          .status(400)
+          .json({ error: 'Not allowed to update past meetups.' });
+      }
+    }
+
+    // Check if file exists
+    if (file_id) {
+      const fileExists = await File.findByPk(file_id);
+
+      if (!fileExists) {
+        return res.status(400).json({ error: 'File does not exists.' });
+      }
+    }
+
+    // Checke if exists
+    const meetup = await Meetup.findByPk(req.params.meetup_id);
+
+    if (!meetup) {
+      return res.status(400).json({ error: 'Meetup not found.' });
+    }
+
+    // Check if is organizer
+    if (meetup.user_id !== req.userId) {
+      return res
+        .status(401)
+        .json({ error: 'You cannot permissions to update this meetup.' });
+    }
+
+    await meetup.update(req.body);
 
     return res.json(meetup);
   }
