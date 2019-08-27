@@ -14,9 +14,9 @@ class UserController {
         .oneOf([Yup.ref('password')]),
     });
 
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'Validation fails' });
-    }
+    await schema.validate(req.body).catch(({ errors }) => {
+      return res.status(400).json({ message: 'Validation fails.', errors });
+    });
 
     const userExists = await User.findOne({
       where: { email: req.body.email },
