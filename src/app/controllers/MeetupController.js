@@ -121,12 +121,41 @@ class MeetupController {
     if (meetup.user_id !== req.userId) {
       return res
         .status(401)
-        .json({ error: 'You cannot permissions to update this meetup.' });
+        .json({ error: 'An meetup can only be updated by its organizer' });
     }
 
     await meetup.update(req.body);
 
     return res.json(meetup);
+  }
+
+  async delete(req, res) {
+    const meetup = await Meetup.findByPk(req.params.meetup_id, {
+      attributes: ['id', 'user_id', 'date', 'isFinished'],
+    });
+
+    // Check if exists
+    if (!meetup) {
+      return res.status(400).json({ error: 'Meetup not fount.' });
+    }
+
+    // Check if user is the organizer
+    if (meetup.user_id !== req.userId) {
+      return res
+        .status(401)
+        .json({ error: 'An meetup can only be canceled by its organizer.' });
+    }
+
+    // Check if meetups is finished
+    if (meetup.isFinished) {
+      return res
+        .status(401)
+        .json({ error: 'An meetup finished cannot be canceled.' });
+    }
+
+    await meetup.destroy();
+
+    return res.json({ message: 'Meetup canceled.' });
   }
 }
 
