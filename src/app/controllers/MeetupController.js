@@ -1,9 +1,44 @@
 import * as Yup from 'yup';
-import { isBefore, parseISO } from 'date-fns';
+import { isBefore, parseISO, endOfDay, startOfDay } from 'date-fns';
+import { Op } from 'sequelize';
 import Meetup from '../models/Meetup';
 import File from '../models/File';
+import User from '../models/User';
 
 class MeetupController {
+  async index(req, res) {
+    const where = {};
+    const { page = 1, date } = req.query;
+
+    if (date) {
+      const searchDate = parseISO(date);
+      console.log(searchDate);
+      where.date = {
+        [Op.between]: [startOfDay(searchDate), endOfDay(searchDate)],
+      };
+    }
+
+    const meetups = await Meetup.findAll({
+      limit: 10,
+      offset: page * 10 - 10,
+      where,
+      include: [
+        {
+          model: User,
+          as: 'organizer',
+          attributes: ['id', 'name', 'email'],
+        },
+        {
+          model: File,
+          as: 'banner',
+          attributes: ['name', 'url', 'path'],
+        },
+      ],
+    });
+
+    return res.json(meetups);
+  }
+
   async store(req, res) {
     const schema = Yup.object().shape({
       title: Yup.string().required(),
@@ -103,7 +138,7 @@ class MeetupController {
 
   async delete(req, res) {
     const meetup = await Meetup.findByPk(req.params.meetup_id, {
-      attributes: ['id', 'user_id', 'date', 'isFinished'],
+      attributes: ['id', 'user_id', 'date', 'finished'],
     });
 
     // Check if exists
@@ -119,7 +154,7 @@ class MeetupController {
     }
 
     // Check if meetups is finished
-    if (meetup.isFinished) {
+    if (meetup.finished) {
       return res
         .status(401)
         .json({ error: 'An meetup finished cannot be canceled.' });

@@ -24,7 +24,7 @@ class SubscriptionController {
     }
 
     // Check if meetup is finished
-    if (meetup.isFinished) {
+    if (meetup.finished) {
       return res
         .status(401)
         .json({ error: 'You cannot subscribe on finished meetups.' });

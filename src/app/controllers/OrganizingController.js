@@ -15,7 +15,7 @@ class OrganizingController {
         'description',
         'location',
         'date',
-        'isFinished',
+        'finished',
         'created_at',
       ],
       include: [

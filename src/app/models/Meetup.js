@@ -9,7 +9,7 @@ class Meetup extends Model {
         description: Sequelize.STRING,
         location: Sequelize.STRING,
         date: Sequelize.DATE,
-        isFinished: {
+        finished: {
           type: Sequelize.VIRTUAL,
           get() {
             return isAfter(new Date(), this.date);
