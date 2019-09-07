@@ -1,13 +1,23 @@
+import { format } from 'date-fns';
+import { pt } from 'date-fns/locale';
 import Meetup from '../models/Meetup';
+import User from '../models/User';
 import Subscription from '../models/Subscription';
+import Mail from '../../lib/Mail';
 
 class SubscriptionController {
   async store(req, res) {
-    const { meetup_id } = req.params;
+    const meetup = await Meetup.findByPk(req.params.meetup_id, {
+      include: [
+        {
+          model: User,
+          as: 'organizer',
+          attributes: ['name', 'email'],
+        },
+      ],
+    });
 
-    const meetup = await Meetup.findByPk(meetup_id);
-
-    // Check if user is the organizer of meetup
+    // Check if user is the meetup organizer
     if (meetup.user_id === req.userId) {
       return res.status(401).json({
         error: 'You can only subscribe to events from others organizers.',
@@ -50,15 +60,36 @@ class SubscriptionController {
       ],
     });
 
-    if (hasConcurrentlySubscriptions) {
+    if (hasConcurrentlySubscriptions.length) {
       return res
         .status(400)
         .json({ error: "Can't subscribe to two meetups at the same time." });
     }
 
     const subscription = await Subscription.create({
-      meetup_id,
+      meetup_id: meetup.id,
       user_id: req.userId,
+    });
+
+    const subscribedUser = await User.findByPk(req.userId, {
+      attributes: ['name', 'email'],
+    });
+
+    await Mail.sendMail({
+      to: `${meetup.organizer.name} <${meetup.organizer.email}>`,
+      subject: 'Novo inscrito',
+      template: 'subscription',
+      context: {
+        title: 'Novo Inscrito',
+        userName: meetup.organizer.name,
+        subscribedUserName: subscribedUser.name,
+        subscribedUserEmail: subscribedUser.email,
+        meetupTitle: meetup.title,
+        meetupLocale: meetup.locale,
+        meetupDate: format(meetup.date, "'dia' dd 'de' MMMM', às' H:mm'h'", {
+          locale: pt,
+        }),
+      },
     });
 
     return res.json(subscription);
