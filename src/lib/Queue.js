@@ -1,7 +1,6 @@
 import Bee from 'bee-queue';
 
 import SubscribedMail from '../app/jobs/SubscribedMail';
-import redisConfig from '../config/redis';
 
 const jobs = [SubscribedMail];
 
@@ -16,7 +15,10 @@ class Queue {
     jobs.forEach(({ key, handle }) => {
       this.queues[key] = {
         bee: new Bee(key, {
-          redis: redisConfig,
+          redis: {
+            host: process.env.REDIS_HOST,
+            PORT: process.env.REDIS_PORT,
+          },
         }),
         handle,
       };
