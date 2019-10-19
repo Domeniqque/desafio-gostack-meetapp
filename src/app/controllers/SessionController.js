@@ -13,15 +13,15 @@ class SessionController {
       return res.status(401).json({ error: 'User not found.' });
     }
 
-    if (!user.checkPassword(password)) {
+    if (!(await user.checkPassword(password))) {
       return res.status(400).json({ error: 'Password does not match' });
     }
 
     const { id, name } = user;
 
     return res.json({
-      user: { id, name },
-      token: await jwt.sign({ id }, authConfig.secret, {
+      user: { id, name, email },
+      token: jwt.sign({ id }, authConfig.secret, {
         expiresIn: authConfig.expiresIn,
       }),
     });
