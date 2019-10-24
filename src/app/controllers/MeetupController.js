@@ -36,6 +36,10 @@ class MeetupController {
       ],
     });
 
+    const total = await Meetup.count(where);
+
+    res.set('X-Total-pages', total > 0 ? Math.ceil(total / 10) : 0);
+
     return res.json(meetups);
   }
 
