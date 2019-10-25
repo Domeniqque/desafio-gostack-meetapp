@@ -19,9 +19,10 @@ class MeetupController {
     }
 
     const meetups = await Meetup.findAll({
-      limit: 10,
-      offset: page * 10 - 10,
       where,
+      limit: 10,
+      order: ['date'],
+      offset: page * 10 - 10,
       include: [
         {
           model: User,
@@ -36,11 +37,11 @@ class MeetupController {
       ],
     });
 
-    const total = await Meetup.count(where);
+    const total = await Meetup.count({ where });
 
-    res.set('X-Total-pages', total > 0 ? Math.ceil(total / 10) : 0);
+    const totalPages = Math.ceil(total / 10);
 
-    return res.json(meetups);
+    return res.json({ totalPages, total, meetups });
   }
 
   async store(req, res) {
