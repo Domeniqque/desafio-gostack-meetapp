@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import Meetup from '../models/Meetup';
+import File from '../models/File';
 import User from '../models/User';
 import Subscription from '../models/Subscription';
 import Queue from '../../lib/Queue';
@@ -19,6 +20,18 @@ class SubscriptionController {
               [Op.gt]: new Date(),
             },
           },
+          include: [
+            {
+              model: File,
+              as: 'banner',
+              attributes: ['name', 'url', 'path', 'id'],
+            },
+            {
+              model: User,
+              as: 'organizer',
+              attributes: ['id', 'name', 'email'],
+            },
+          ],
           required: true,
         },
       ],
@@ -51,19 +64,6 @@ class SubscriptionController {
       return res
         .status(401)
         .json({ error: 'You cannot subscribe on finished meetups.' });
-    }
-
-    // Check if user is subscribed
-    if (meetup.Subscription) {
-      const isSubscribed = meetup.Subscriptions.find(
-        s => s.user_id === req.userId
-      );
-
-      if (isSubscribed) {
-        return res
-          .status(401)
-          .json({ error: 'You are already subscribed for this meetup.' });
-      }
     }
 
     // Check the date of others user subscriptions
@@ -103,6 +103,28 @@ class SubscriptionController {
     });
 
     return res.json(subscription);
+  }
+
+  async delete(req, res) {
+    const { meetup_id } = req.params;
+
+    // Check if user is subscribed
+    const subscription = await Subscription.findOne({
+      where: {
+        meetup_id,
+        user_id: req.userId,
+      },
+    });
+
+    if (!subscription) {
+      return res
+        .status(401)
+        .json({ error: 'You are not subscribed for this meetup.' });
+    }
+
+    await subscription.destroy();
+
+    return res.json({ message: 'Unsubscribed successfully!' });
   }
 }
 
